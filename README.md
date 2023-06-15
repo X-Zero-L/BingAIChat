@@ -30,6 +30,18 @@
     4. 点击右下角的"导出" ，然后点击"导出为 JSON" (将会把内容保存到你的剪贴板上)
     5. 把你剪贴板上的内容粘贴到 `BingAIChat/cookies.json` 文件中（如果没有则新建）
 
+- 添加代理（如果需要）
+
+  - 在`BingAIChat/config.json.example`中修改`proxy`变量
+
+    ```json
+    {
+        "proxy": "你的代理地址" # 例如：http://127.0.0.1:7890
+    }
+    ```
+
+  - 重命名`BingAIChat/config.json.example`为`BingAIChat/config.json`
+
 - 在`hoshino/config/__bot__.py`中加入`BingAIChat`模块
 
     ```python

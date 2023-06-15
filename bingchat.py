@@ -1,13 +1,14 @@
 import os
 import json
 import contextlib
-from EdgeGPT import Chatbot, ConversationStyle
+from EdgeGPT.EdgeGPT import Chatbot, ConversationStyle
 from hoshino import Service, priv, get_bot
 from hoshino.typing import CQEvent
 
 path = os.path.dirname(os.path.abspath(__file__))
 bots = {}
 cookie = {}
+proxy = None
 
 sv_help = '''
 [bing xxx] 与bing聊天
@@ -24,17 +25,7 @@ sv = Service(
     enable_on_default=True,
     bundle='娱乐',
     help_=sv_help
-)
-
-bot = get_bot()
-@bot.on_startup
-async def init():
-    global cookies
-    with open(os.path.join(path, "cookies.json"), "r") as f:
-        cookies = json.load(f)
-    if not os.path.exists(os.path.join(path, "history")):
-        os.mkdir(os.path.join(path, "history"))
-    
+)   
     
 def remove_file(file_name):
     if os.path.exists(file_name):
@@ -51,6 +42,17 @@ def load_from_json(file_name):
         return []
     with open(file_name, 'r', encoding='utf-8') as f:
         return json.load(f)
+
+bot = get_bot()
+@bot.on_startup
+async def init():
+    global cookies, proxy
+    cookies = load_from_json(os.path.join(path, "cookies.json"))
+    if not os.path.exists(os.path.join(path, "history")):
+        os.mkdir(os.path.join(path, "history"))
+    with contextlib.suppress(Exception):
+        config = load_from_json(os.path.join(path, "config.json"))
+        proxy = config['proxy'] or None 
 
 
 async def get_bing_response(prompt, bing):
@@ -115,14 +117,16 @@ async def get_bing_reply(prompt, uid):
 
 
 async def get_bing(uid: str):
+    global cookies, proxy, bots
     if uid not in bots:
         bots[uid] = {
-            'bot': Chatbot(cookies=cookies),
+            'bot': Chatbot(cookies=cookies, proxy=proxy),
         }
     return bots[uid]['bot']
 
 
 async def remove_bot(uid: str):
+    global bots
     if uid in bots:
         with contextlib.suppress(Exception):
             await bots[uid]['bot'].close()
@@ -211,7 +215,8 @@ async def bingchat(bot, ev: CQEvent):
     elif msg == "history":
         await process_history_event(bot, ev)
     elif msg == "help":
-        await bot.send(ev, "bing xxx: 必应聊天\nbing exit: 清空历史记录,重置会话\nbing history: 查看历史记录\nbing help: 查看帮助", at_sender=True)
+        global sv_help
+        await bot.send(ev, sv_help, at_sender=True)
     elif msg.strip() == "":
         await bot.send(ev, "请输入内容", at_sender=True)
     else:
