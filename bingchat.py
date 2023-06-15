@@ -191,7 +191,7 @@ async def send_bing_reply(bot, ev: CQEvent, msg: str):
     while try_times:
         try:
             ret = await get_bing_reply(msg.strip(), uid)
-            await bot.send_txt2img(ev, ret, at_sender=True)
+            await bot.send(ev, ret, at_sender=True)
             break
         except Exception as e:
             err_msg = f"Failed: {e}, 累计尝试次数: {5 - try_times + 1}"
