@@ -1,8 +1,9 @@
+import base64
 import os
 import json
 import contextlib
 from EdgeGPT.EdgeGPT import Chatbot, ConversationStyle
-from hoshino import Service, priv, get_bot
+from hoshino import Service, priv, get_bot, aiorequests
 from hoshino.typing import CQEvent
 
 path = os.path.dirname(os.path.abspath(__file__))
@@ -59,14 +60,20 @@ async def get_bing_response(prompt, bing):
     return await bing.ask(
         prompt=prompt, conversation_style=ConversationStyle.creative
     )
+    
 def get_bing_suggestions(msgs):
     try:
         return [suggest['text'] for suggest in msgs['suggestedResponses']] if msgs['suggestedResponses'] else []
     except Exception:
         return []
 
+async def download_image(url):
+    resp = await aiorequests.get(url)
+    content = await resp.content
+    # 将返回的二进制数据转为base64
+    return f"[CQ:image,file=base64://{base64.b64encode(content).decode()}]"
 
-def get_bing_urls(msgs):
+async def get_bing_urls(msgs):
     try:
         urls = []
         for i, sourceAttribution in enumerate(msgs['sourceAttributions']):
@@ -74,14 +81,18 @@ def get_bing_urls(msgs):
                 url = f"{i + 1}:{sourceAttribution['providerDisplayName']} {sourceAttribution['seeMoreUrl']}"
                 # 判断有没有imageLink
                 if 'imageLink' in sourceAttribution:
-                    url += f" image:{sourceAttribution['imageLink']}"
+                    try:
+                        image = await download_image(sourceAttribution['imageLink'])
+                        url += f" {image}"
+                    except Exception:
+                        url += f" {sourceAttribution['imageLink']}"
                 urls.append(url)
         return urls
     except Exception:
         return []
     
-def format_bing_urls(msgs):
-    urls = get_bing_urls(msgs)
+async def format_bing_urls(msgs):
+    urls = await get_bing_urls(msgs)
     ret = ""
     if urls:
         ret += "\nurls:\n"
@@ -100,7 +111,7 @@ def format_bing_suggestions(msgs):
     return ret
 
 
-def process_bing_response(response, uid):
+async def process_bing_response(response, uid):
     msgs = response['item']['messages']
     user_msg = {
         'author': uid,
@@ -118,13 +129,13 @@ def process_bing_response(response, uid):
     save_to_history(uid, user_msg)
     save_to_history(uid, bot_msg)
 
-    return f"\nbing: {bot_msg['msg']}\n{format_bing_urls(responseMsg)}{format_bing_suggestions(responseMsg)}".strip()
+    return f"\nbing: {bot_msg['msg']}\n{await format_bing_urls(responseMsg)}{format_bing_suggestions(responseMsg)}".strip()
 
 
 async def get_bing_reply(prompt, uid):
     bing = await get_bing(uid)
     response = await get_bing_response(prompt, bing)
-    return process_bing_response(response, uid)
+    return await process_bing_response(response, uid)
 
 
 async def get_bing(uid: str):
@@ -199,7 +210,7 @@ async def process_history_event(bot, ev: CQEvent):
         await bot.send(ev, "暂无历史记录", at_sender=True)
         return
     await bot.send_group_forward_msg(group_id=gid, messages=history)
-
+    
 async def send_bing_reply(bot, ev: CQEvent, msg: str):
     uid = str(ev.user_id)
     try_times = 5
