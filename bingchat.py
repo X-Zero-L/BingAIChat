@@ -56,24 +56,30 @@ async def init():
 
 
 async def get_bing_response(prompt, bing):
-    return await bing.ask(prompt=prompt, conversation_style=ConversationStyle.creative)
-
-
+    return await bing.ask(
+        prompt=prompt, conversation_style=ConversationStyle.creative
+    )
 def get_bing_suggestions(msgs):
     try:
-        return [suggest['text'] for suggest in msgs[1]['suggestedResponses']] if msgs[1]['suggestedResponses'] else []
+        return [suggest['text'] for suggest in msgs['suggestedResponses']] if msgs['suggestedResponses'] else []
     except Exception:
         return []
 
 
 def get_bing_urls(msgs):
     try:
-        return [f"{i + 1}:{sourceAttribution['providerDisplayName']} {sourceAttribution['seeMoreUrl']}"
-                for i, sourceAttribution in enumerate(msgs[1]['sourceAttributions'])]
+        urls = []
+        for i, sourceAttribution in enumerate(msgs['sourceAttributions']):
+            with contextlib.suppress(Exception):
+                url = f"{i + 1}:{sourceAttribution['providerDisplayName']} {sourceAttribution['seeMoreUrl']}"
+                # 判断有没有imageLink
+                if 'imageLink' in sourceAttribution:
+                    url += f" image:{sourceAttribution['imageLink']}"
+                urls.append(url)
+        return urls
     except Exception:
         return []
-
-
+    
 def format_bing_urls(msgs):
     urls = get_bing_urls(msgs)
     ret = ""
@@ -104,10 +110,15 @@ def process_bing_response(response, uid):
         'author': 'bot',
         'msg': msgs[1]['text'],
     }
+    msgs = msgs[1:]
+    responseMsg = next((msg for msg in msgs if 'messageType' not in msg), None)
+    bot_msg['msg'] = responseMsg['text'] or bot_msg['msg']
+    
+    
     save_to_history(uid, user_msg)
     save_to_history(uid, bot_msg)
 
-    return f"\nbing: {bot_msg['msg']}\n{format_bing_urls(msgs)}{format_bing_suggestions(msgs)}".strip()
+    return f"\nbing: {bot_msg['msg']}\n{format_bing_urls(responseMsg)}{format_bing_suggestions(responseMsg)}".strip()
 
 
 async def get_bing_reply(prompt, uid):
