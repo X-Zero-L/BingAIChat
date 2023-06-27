@@ -3,16 +3,16 @@ import os
 import json
 import contextlib
 from EdgeGPT.EdgeGPT import Chatbot, ConversationStyle
+from .bingImage import bing_img_create
 from hoshino import Service, priv, get_bot, aiorequests
 from hoshino.typing import CQEvent
-
+from .utils import *
+from . import config
 path = os.path.dirname(os.path.abspath(__file__))
 bots = {}
-cookie = {}
-proxy = None
-
 sv_help = '''
 [bing xxx] 与bing聊天
+[bing create xxx] 生成图片
 [bing exit] 退出对话(刷新聊天历史记录)
 [bing help] 查看帮助
 [bing history] 查看历史记录
@@ -27,51 +27,30 @@ sv = Service(
     bundle='娱乐',
     help_=sv_help
 )   
-    
-def remove_file(file_name):
-    if os.path.exists(file_name):
-        os.remove(file_name)
-
-
-def dump_to_json(data, file_name):
-    with open(file_name, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-
-def load_from_json(file_name):
-    if not os.path.exists(file_name):
-        return []
-    with open(file_name, 'r', encoding='utf-8') as f:
-        return json.load(f)
 
 bot = get_bot()
 @bot.on_startup
 async def init():
-    global cookies, proxy
-    cookies = load_from_json(os.path.join(path, "cookies.json"))
+    config.cookies = load_from_json(os.path.join(path, "cookies.json"))
     if not os.path.exists(os.path.join(path, "history")):
         os.mkdir(os.path.join(path, "history"))
     with contextlib.suppress(Exception):
-        config = load_from_json(os.path.join(path, "config.json"))
-        proxy = config['proxy'] or None 
+        configJson = load_from_json(os.path.join(path, "config.json"))
+        config.proxy = configJson['proxy'] or None 
 
 
 async def get_bing_response(prompt, bing):
-    return await bing.ask(
+    resp =  await bing.ask(
         prompt=prompt, conversation_style=ConversationStyle.creative
     )
+    dump_to_json(resp, os.path.join(path, "resp.json"))
+    return resp
     
 def get_bing_suggestions(msgs):
     try:
         return [suggest['text'] for suggest in msgs['suggestedResponses']] if msgs['suggestedResponses'] else []
     except Exception:
         return []
-
-async def download_image(url):
-    resp = await aiorequests.get(url)
-    content = await resp.content
-    # 将返回的二进制数据转为base64
-    return f"[CQ:image,file=base64://{base64.b64encode(content).decode()}]"
 
 async def get_bing_urls(msgs):
     try:
@@ -139,10 +118,10 @@ async def get_bing_reply(prompt, uid):
 
 
 async def get_bing(uid: str):
-    global cookies, proxy, bots
+    global bots
     if uid not in bots:
         bots[uid] = {
-            'bot': Chatbot(cookies=cookies, proxy=proxy),
+            'bot': Chatbot(cookies=config.cookies, proxy=config.proxy),
         }
     return bots[uid]['bot']
 
@@ -231,7 +210,7 @@ async def send_bing_reply(bot, ev: CQEvent, msg: str):
 
 @sv.on_prefix('bing')
 async def bingchat(bot, ev: CQEvent):
-    msg = ev.message.extract_plain_text()
+    msg = ev.message.extract_plain_text().strip()
     if msg == "exit":
         await process_exit_event(bot, ev)
     elif msg == "history":
@@ -241,5 +220,7 @@ async def bingchat(bot, ev: CQEvent):
         await bot.send(ev, sv_help, at_sender=True)
     elif msg.strip() == "":
         await bot.send(ev, "请输入内容", at_sender=True)
+    elif msg.startswith("create"):
+        await bot.send(ev, await bing_img_create(msg[6:]), at_sender=True)
     else:
         await send_bing_reply(bot, ev, msg)

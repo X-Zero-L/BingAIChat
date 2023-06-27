@@ -57,6 +57,12 @@
 ## 使用
 
 - `bing [内容]`：与bing聊天
+- `bing create [prompt]`：bing绘图
 - `bing exit`：重置会话，清空聊天记录
 - `bing help`：查看帮助
 - `bing history`：查看聊天记录
+
+## 注意事项
+
+- 由于图片生成接口并没有提供proxy参数，所以在使用`bing create`时，如果你的bot部署在墙内，会出现图片无法生成的情况，这时候你可以考虑使用其他的代理方式，例如`clash`的`TUN`模式
+- 在初次使用本插件生成图片之前，请进入bing的官方网站[bingImageCreate](https://www.bing.com/images/create)，手动生成一张图片
