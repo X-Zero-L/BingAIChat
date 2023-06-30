@@ -1,6 +1,6 @@
 from EdgeGPT.ImageGen import ImageGenAsync
 import os
-from utils import async_download_images
+from .utils import async_download_images
 from . import config
 path = os.path.dirname(os.path.abspath(__file__))
 
