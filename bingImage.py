@@ -1,4 +1,4 @@
-from EdgeGPT.ImageGen import ImageGenAsync
+from .EdgeGPT.ImageGen import ImageGenAsync
 import os
 from .utils import async_download_images
 from . import config

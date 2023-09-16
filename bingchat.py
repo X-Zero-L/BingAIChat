@@ -2,7 +2,7 @@ import base64
 import os
 import json
 import contextlib
-from EdgeGPT.EdgeGPT import Chatbot, ConversationStyle
+from .EdgeGPT.EdgeGPT import Chatbot, ConversationStyle
 from .bingImage import bing_img_create
 from hoshino import Service, priv, get_bot, aiorequests
 from hoshino.typing import CQEvent
