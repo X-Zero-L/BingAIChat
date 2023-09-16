@@ -65,4 +65,5 @@
 ## 注意事项
 
 - 由于图片生成接口并没有提供proxy参数，所以在使用`bing create`时，如果你的bot部署在墙内，会出现图片无法生成的情况，这时候你可以考虑使用其他的代理方式，例如`clash`的`TUN`模式
-- 在初次使用本插件生成图片之前，请进入bing的官方网站[bingImageCreate](https://www.bing.com/images/create)，手动生成一张图片
+- 在初次使用本插件生成图片之前，请进入bing的官方网站[bingImageCreate](https://www.bing.com/images/create)，手动生成一张图片。(对话也一样）
+- 如果遇到验证码问题，目前的解决办法是你自己去网页和bing进行一次对话，一般情况不需要更新cookies，如果对话后还无法解决问题，再更换新的cookies
