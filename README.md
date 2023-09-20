@@ -12,12 +12,6 @@
     git clone https://github.com/X-Zero-L/BingAIChat.git
     ```
 
-- 安装依赖
-
-    ```shell
-    pip install -r BingAIChat/requirements.txt
-    ```
-
 - 获取Cookie
 
   - 要求
