@@ -1,17 +1,20 @@
+import asyncio
 import base64
 import os
 import json
 import contextlib
+import time
 from .EdgeGPT.EdgeGPT import Chatbot, ConversationStyle
 from .bingImage import bing_img_create
 from hoshino import Service, priv, get_bot, aiorequests
 from hoshino.typing import CQEvent
 from .utils import *
 from . import config
+
 path = os.path.dirname(os.path.abspath(__file__))
 bots = {}
 sv_help = '''
-[bing xxx] 与bing聊天
+[bing xxx <img>] 与bing聊天,可以附带图片让bing识别,仅第一张图片有效
 [bing create xxx] 生成图片
 [bing exit] 退出对话(刷新聊天历史记录)
 [bing help] 查看帮助
@@ -36,12 +39,13 @@ async def init():
         os.mkdir(os.path.join(path, "history"))
     with contextlib.suppress(Exception):
         configJson = load_from_json(os.path.join(path, "config.json"))
-        config.proxy = configJson['proxy'] or None 
+        config.proxy = configJson['proxy'] or None # type: ignore
 
 
-async def get_bing_response(prompt, bing):
+async def get_bing_response(prompt, bing:Chatbot, img_url: str=None): # type: ignore
     resp =  await bing.ask(
-        prompt=prompt, conversation_style=ConversationStyle.creative
+        prompt=prompt, conversation_style=ConversationStyle.creative,
+        img_url=img_url
     )
     dump_to_json(resp, os.path.join(path, "resp.json"))
     return resp
@@ -111,23 +115,29 @@ async def process_bing_response(response, uid):
     return f"\nbing: {bot_msg['msg']}\n{await format_bing_urls(responseMsg)}{format_bing_suggestions(responseMsg)}".strip()
 
 
-async def get_bing_reply(prompt, uid):
+async def get_bing_reply(prompt, uid, img_url: str=None): # type: ignore
     bing = await get_bing(uid)
-    response = await get_bing_response(prompt, bing)
+    response = await get_bing_response(prompt, bing, img_url)
     return await process_bing_response(response, uid)
 
 
 async def get_bing(uid: str):
     global bots
+    uid = "1"
     if uid not in bots:
         bots[uid] = {
-            'bot': Chatbot(cookies=config.cookies, proxy=config.proxy),
+            'bot': Chatbot(cookies=config.cookies, proxy=config.proxy), # type: ignore
+            'time': time.time()
         }
+    if time.time() - bots[uid]['time'] > 60 * 10:
+        await remove_bot(uid)
+        return await get_bing(uid)
     return bots[uid]['bot']
 
 
 async def remove_bot(uid: str):
     global bots
+    uid = "1"
     if uid in bots:
         with contextlib.suppress(Exception):
             await bots[uid]['bot'].close()
@@ -142,19 +152,6 @@ def save_to_history(uid: str, msg: dict):
     history = get_history(uid)
     history.append(msg)
     dump_to_json(history, os.path.join(path, "history", f"{uid}.json"))
-
-
-def merge_msg(data, msg, name, uid):  # 合并消息
-    data.append({
-        "type": "node",
-        "data": {
-            "name": f"{name}",
-            "uin": f"{uid}",
-            "content": msg
-        },
-    })
-    return data
-
 
 def merge_history_data(history, uid, uname, bid, bname):
     data = []
@@ -190,37 +187,62 @@ async def process_history_event(bot, ev: CQEvent):
         return
     await bot.send_group_forward_msg(group_id=gid, messages=history)
     
-async def send_bing_reply(bot, ev: CQEvent, msg: str):
+async def send_bing_reply(bot, ev: CQEvent, msg: str, img_url: str=None):
     uid = str(ev.user_id)
     try_times = 5
+    lastErr = None
     while try_times:
         try:
-            ret = await get_bing_reply(msg.strip(), uid)
+            ret = await get_bing_reply(msg.strip(), uid, img_url)
             await bot.send(ev, ret, at_sender=True)
             break
         except Exception as e:
+            # e的类型
+            type_e = type(e)
+            if lastErr == type_e:
+                await bot.send_txt2img(ev, f"Failed: {e}, 不试了", at_sender=True)
+                break
             err_msg = f"Failed: {e}, 累计尝试次数: {5 - try_times + 1}"
+            lastErr = type_e
             if try_times == 1:
                 err_msg = f"{err_msg}, 已经达到最大尝试次数, 已取消本次请求"
             else:
                 err_msg = f"{err_msg}, 正在重新尝试..."
             await remove_bot(uid)
-            await bot.send(ev, err_msg, at_sender=True)
+            await bot.send_txt2img(ev, err_msg, at_sender=True)
             try_times -= 1
+
+# 群号锁
+locks = {}
 
 @sv.on_prefix('bing')
 async def bingchat(bot, ev: CQEvent):
+    #gid = str(ev.group_id)
+    gid = "1" # 临时改成所有群共用一个锁
+    lock = locks.setdefault(gid, asyncio.Lock())
     msg = ev.message.extract_plain_text().strip()
-    if msg == "exit":
-        await process_exit_event(bot, ev)
-    elif msg == "history":
-        await process_history_event(bot, ev)
-    elif msg == "help":
-        global sv_help
-        await bot.send(ev, sv_help, at_sender=True)
-    elif msg.strip() == "":
-        await bot.send(ev, "请输入内容", at_sender=True)
-    elif msg.startswith("create"):
-        await bot.send(ev, await bing_img_create(msg[6:]), at_sender=True)
-    else:
-        await send_bing_reply(bot, ev, msg)
+    # 判断有没有锁
+    if lock.locked():
+        await bot.send(ev, "当前还有人在使用bing, 已加入队列，请耐心等待", at_sender=True)
+    async with lock:
+        if msg == "exit":
+            await process_exit_event(bot, ev)
+        elif msg == "history":
+            await process_history_event(bot, ev)
+        elif msg == "help":
+            global sv_help
+            await bot.send(ev, sv_help, at_sender=True)
+        elif msg.strip() == "":
+            await bot.send(ev, "请输入内容", at_sender=True)
+        elif msg.startswith("create"):
+            await bot.send(ev, await bing_img_create(msg[6:]), at_sender=True)
+        else:
+            img_url = next(
+                (
+                    ev_msg.data["url"]
+                    for ev_msg in ev.message
+                    if ev_msg.type == "image"
+                ),
+                None,
+            )
+            await send_bing_reply(bot, ev, msg, img_url) # type: ignore

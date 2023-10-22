@@ -13,6 +13,7 @@ class ChatHubRequest:
     def __init__(
         self,
         conversation_signature: str,
+        encrypted_conversation_signature: str,
         client_id: str,
         conversation_id: str,
         invocation_id: int = 3,
@@ -22,6 +23,7 @@ class ChatHubRequest:
         self.client_id: str = client_id
         self.conversation_id: str = conversation_id
         self.conversation_signature: str = conversation_signature
+        self.encrypted_conversation_signature: str = encrypted_conversation_signature
         self.invocation_id: int = invocation_id
 
     def update(
@@ -31,6 +33,8 @@ class ChatHubRequest:
         webpage_context: Union[str, None] = None,
         search_result: bool = False,
         locale: str = guess_locale(),
+        processedBlobId: str = None, # type: ignore
+        blobId: str = None, # type: ignore
     ) -> None:
         options = [
             "deepleo",
@@ -41,7 +45,7 @@ class ChatHubRequest:
         if conversation_style:
             if not isinstance(conversation_style, ConversationStyle):
                 conversation_style = getattr(ConversationStyle, conversation_style)
-            options = conversation_style.value
+            options = conversation_style.value # type: ignore
         message_id = str(uuid.uuid4())
         # Get the current local time
         now_local = datetime.now()
@@ -76,35 +80,37 @@ class ChatHubRequest:
                         "InternalLoaderMessage",
                         "Progress",
                         "RenderCardRequest",
+                        "RenderContentRequest",
                         "AdsQuery",
                         "SemanticSerp",
                         "GenerateContentQuery",
-                        "SearchQuery",
+                        "SearchQuery"
                     ],
                     "sliceIds": [
-                        "winmuid1tf",
-                        "styleoff",
-                        "ccadesk",
-                        "smsrpsuppv4cf",
-                        "ssrrcache",
-                        "contansperf",
-                        "crchatrev",
-                        "winstmsg2tf",
-                        "creatgoglt",
-                        "creatorv2t",
-                        "sydconfigoptt",
-                        "adssqovroff",
-                        "530pstho",
-                        "517opinion",
-                        "418dhlth",
-                        "512sprtic1s0",
-                        "emsgpr",
-                        "525ptrcps0",
-                        "529rweas0",
-                        "515oscfing2s0",
-                        "524vidansgs0",
+                        "bf119930v2",
+                        "0731ziv2",
+                        "0712newas",
+                        "cacdiscf",
+                        "909ajcopu",
+                        "lesstts",
+                        "cdxttssb",
+                        "prehome",
+                        "scpbf2c",
+                        "sydtransctrl",
+                        "cac2muidck",
+                        "713logprobss0",
+                        "926bof108t525",
+                        "1004usrprmpts0",
+                        "927uprofasy",
+                        "929validmuid0",
+                        "929muid0",
+                        "917fluxv14h",
+                        "remsaconn3p",
+                        "splitcss3p",
+                        "sydconfigoptt"
                     ],
                     "verbosity": "verbose",
+                    "scenario": "SERP",
                     "traceId": get_ran_hex(32),
                     "isStartOfSession": self.invocation_id == 3,
                     "message": {
@@ -120,9 +126,10 @@ class ChatHubRequest:
                         "messageId": message_id,
                         "requestId": message_id,
                     },
-                    "tone": conversation_style.name.capitalize(),  # Make first letter uppercase
+                    "tone": conversation_style.name.capitalize(),  # Make first letter uppercase # type: ignore
                     "requestId": message_id,
                     "conversationSignature": self.conversation_signature,
+                    "encryptedConversationSignature": self.encrypted_conversation_signature,
                     "participant": {
                         "id": self.client_id,
                     },
@@ -133,6 +140,10 @@ class ChatHubRequest:
             "target": "chat",
             "type": 4,
         }
+        if processedBlobId:
+            self.struct["arguments"][0]["message"]["imageUrl"] = "https://www.bing.com/images/blob?bcid="+blobId
+            self.struct["arguments"][0]["message"]["originalImageUrl"] = "https://www.bing.com/images/blob?bcid="+blobId
+            print(self.struct["arguments"][0]["message"]["imageUrl"],self.struct["arguments"][0]["message"]["originalImageUrl"])
         if search_result:
             have_search_result = [
                 "InternalSearchQuery",

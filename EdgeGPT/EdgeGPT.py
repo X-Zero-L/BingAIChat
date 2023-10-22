@@ -52,6 +52,7 @@ class Chatbot:
         with open(filename, "w") as f:
             conversation_id = self.chat_hub.request.conversation_id
             conversation_signature = self.chat_hub.request.conversation_signature
+            encrypted_conversation_signature = self.chat_hub.request.encrypted_conversation_signature
             client_id = self.chat_hub.request.client_id
             invocation_id = self.chat_hub.request.invocation_id
             f.write(
@@ -59,6 +60,7 @@ class Chatbot:
                     {
                         "conversation_id": conversation_id,
                         "conversation_signature": conversation_signature,
+                        "encrypted_conversation_signature": encrypted_conversation_signature,
                         "client_id": client_id,
                         "invocation_id": invocation_id,
                     },
@@ -73,6 +75,7 @@ class Chatbot:
             conversation = json.load(f)
             self.chat_hub.request = ChatHubRequest(
                 conversation_signature=conversation["conversation_signature"],
+                encrypted_conversation_signature=conversation["encrypted_conversation_signature"],
                 client_id=conversation["client_id"],
                 conversation_id=conversation["conversation_id"],
                 invocation_id=conversation["invocation_id"],
@@ -99,6 +102,7 @@ class Chatbot:
         search_result: bool = False,
         locale: str = guess_locale(),
         simplify_response: bool = False,
+        img_url: str = None,
     ) -> dict:
         """
         Ask a question to the bot
@@ -120,6 +124,7 @@ class Chatbot:
             webpage_context=webpage_context,
             search_result=search_result,
             locale=locale,
+            img_url=img_url,
         ):
             if final:
                 if not simplify_response:
@@ -180,6 +185,7 @@ class Chatbot:
         webpage_context: str | None = None,
         search_result: bool = False,
         locale: str = guess_locale(),
+        img_url: str = None,
     ) -> Generator[bool, dict | str, None]:
         """
         Ask a question to the bot
@@ -192,6 +198,7 @@ class Chatbot:
             webpage_context=webpage_context,
             search_result=search_result,
             locale=locale,
+            img_url=img_url,
         ):
             yield response
 
@@ -205,6 +212,7 @@ class Chatbot:
         self,
         conversation_id: str = None,
         conversation_signature: str = None,
+        encrypted_conversation_signature: str = None,
         client_id: str = None,
     ) -> None:
         """
@@ -213,6 +221,7 @@ class Chatbot:
         await self.chat_hub.delete_conversation(
             conversation_id=conversation_id,
             conversation_signature=conversation_signature,
+            encrypted_conversation_signature=encrypted_conversation_signature,
             client_id=client_id,
         )
 

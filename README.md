@@ -10,6 +10,7 @@
 
     ```shell
     git clone https://github.com/X-Zero-L/BingAIChat.git
+    pip install -r requirements.txt
     ```
 
 - 获取Cookie
@@ -50,7 +51,7 @@
 
 ## 使用
 
-- `bing [内容]`：与bing聊天
+- `bing [文本内容] [图片]`：bing聊天,内容为必填,图片为可选,如果带有图片,bing会进行识别
 - `bing create [prompt]`：bing绘图
 - `bing exit`：重置会话，清空聊天记录
 - `bing help`：查看帮助
@@ -61,3 +62,4 @@
 - 由于图片生成接口并没有提供proxy参数，所以在使用`bing create`时，如果你的bot部署在墙内，会出现图片无法生成的情况，这时候你可以考虑使用其他的代理方式，例如`clash`的`TUN`模式
 - 在初次使用本插件生成图片之前，请进入bing的官方网站[bingImageCreate](https://www.bing.com/images/create)，手动生成一张图片。(对话也一样）
 - 如果遇到验证码问题，目前的解决办法是你自己去网页和bing进行一次对话，一般情况不需要更新cookies，如果对话后还无法解决问题，再更换新的cookies
+- 当前修改为单例以应对bing的并发会话限制,可自行删除对应代码,分别是群锁部分和被硬编码的实例uid部分

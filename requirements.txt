@@ -1,1 +1,9 @@
-
+requests
+requests_toolbelt
+aiohttp
+BingImageCreator
+certifi
+httpx
+prompt_toolkit
+requests
+rich
