@@ -10,7 +10,7 @@
 
     ```shell
     git clone https://github.com/X-Zero-L/BingAIChat.git
-    pip install -r requirements.txt
+    pip install -r BingAIChat/requirements.txt
     ```
 
 - 获取Cookie
