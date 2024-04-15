@@ -25,7 +25,7 @@ async def async_image_gen(prompt):
         quiet=True,
         cookies = config.cookies
     )
-    async with ImageGenAsync(auth_cookie = image_gen_config.U, quiet = image_gen_config.quiet) as image_generator:
+    async with ImageGenAsync(auth_cookie = image_gen_config.U, quiet = image_gen_config.quiet, proxy=config.proxy) as image_generator:
         return await image_generator.get_images(prompt) # url list
         # await image_generator.save_images(images, output_dir=image_gen_config.output_dir)
         
