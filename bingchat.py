@@ -200,7 +200,7 @@ async def send_bing_reply(bot, ev: CQEvent, msg: str, img_url: str=None):
             # e的类型
             type_e = type(e)
             if lastErr == type_e:
-                await bot.send_txt2img(ev, f"Failed: {e}, 不试了", at_sender=True)
+                await bot.send(ev, f"Failed: {e}, 不试了", at_sender=True)
                 break
             err_msg = f"Failed: {e}, 累计尝试次数: {5 - try_times + 1}"
             lastErr = type_e
@@ -209,7 +209,7 @@ async def send_bing_reply(bot, ev: CQEvent, msg: str, img_url: str=None):
             else:
                 err_msg = f"{err_msg}, 正在重新尝试..."
             await remove_bot(uid)
-            await bot.send_txt2img(ev, err_msg, at_sender=True)
+            await bot.send(ev, err_msg, at_sender=True)
             try_times -= 1
 
 # 群号锁
