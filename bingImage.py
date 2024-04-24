@@ -32,10 +32,6 @@ async def async_image_gen(prompt):
 async def bing_img_create(prompt):
     try:
         urls = await async_image_gen(prompt)
-        if config.proxy is None:
-            img_cq = [f"[CQ:image,file={url}]" for url in urls]
-        else:
-            img_cq = await async_download_images(urls,config.proxy)
-        return "\n".join(img_cq)
+        return "\n".join(urls)
     except Exception as e:
         return f"图片生成失败：{e}"
