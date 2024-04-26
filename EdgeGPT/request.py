@@ -140,7 +140,7 @@ class ChatHubRequest:
             "target": "chat",
             "type": 4,
         }
-        if processedBlobId:
+        if blobId:
             self.struct["arguments"][0]["message"]["imageUrl"] = "https://www.bing.com/images/blob?bcid="+blobId
             self.struct["arguments"][0]["message"]["originalImageUrl"] = "https://www.bing.com/images/blob?bcid="+blobId
             print(self.struct["arguments"][0]["message"]["imageUrl"],self.struct["arguments"][0]["message"]["originalImageUrl"])
