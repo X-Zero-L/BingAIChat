@@ -201,6 +201,7 @@ async def send_bing_reply(bot, ev: CQEvent, msg: str, img_url: str=None):
             type_e = type(e)
             if lastErr == type_e:
                 await bot.send(ev, f"Failed: {e}, 不试了", at_sender=True)
+                await remove_bot(uid)
                 break
             err_msg = f"Failed: {e}, 累计尝试次数: {5 - try_times + 1}"
             lastErr = type_e
